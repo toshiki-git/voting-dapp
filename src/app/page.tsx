@@ -3,7 +3,6 @@ import VotingABI from './abi.json';
 import { ethers } from 'ethers';
 import { useState, useEffect } from 'react';
 
-// Get the contract address from the environment variables
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string;
 
 if (CONTRACT_ADDRESS === undefined) {
@@ -21,8 +20,9 @@ export default function Home() {
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [voted, setVoted] = useState<boolean>(false);
+  const [votedCandidateId, setVotedCandidateId] = useState<number | null>(null);
   const [account, setAccount] = useState<string | null>(null);
+  const [newCandidateName, setNewCandidateName] = useState<string>('');
 
   useEffect(() => {
     const initEthers = async () => {
@@ -50,6 +50,12 @@ export default function Home() {
           tempCandidates.push({ id: i, name, voteCount: voteCount.toString() });
         }
         setCandidates(tempCandidates);
+
+        // Check if the user has already voted and get the candidateId
+        const voterId = await tempContract.voters(tempAccount);
+        if (voterId > 0) {
+          setVotedCandidateId(Number(voterId)); // 修正ポイント: 型変換を Number() を使用して行う
+        }
       } else {
         console.error('MetaMaskがインストールされていません。');
       }
@@ -64,10 +70,36 @@ export default function Home() {
     try {
       const tx = await contract.vote(candidateId);
       await tx.wait();
-      setVoted(true);
+      setVotedCandidateId(candidateId);
       alert('投票に成功しました!');
     } catch (error) {
       console.error('投票に失敗しました:', error);
+    }
+  };
+
+  const addNewCandidate = async () => {
+    if (!contract || newCandidateName.trim() === '') return;
+
+    try {
+      const tx = await contract.addCandidate(newCandidateName);
+      await tx.wait();
+      alert(`${newCandidateName} を候補者として追加しました!`);
+
+      // Update candidates list
+      const candidatesCount: number = await contract.candidatesCount();
+      const newCandidate = await contract.getCandidate(candidatesCount);
+      setCandidates([
+        ...candidates,
+        {
+          id: candidatesCount,
+          name: newCandidate[0],
+          voteCount: newCandidate[1].toString(),
+        },
+      ]);
+
+      setNewCandidateName(''); // Reset the input field
+    } catch (error) {
+      console.error('候補者の追加に失敗しました:', error);
     }
   };
 
@@ -86,35 +118,58 @@ export default function Home() {
             MetaMaskを接続してください。
           </p>
         )}
-        {voted ? (
+        {votedCandidateId ? (
           <p className="text-xl font-semibold text-green-500 text-center">
-            投票ありがとうございます！
+            あなたは既に「
+            {candidates.find((c) => c.id === votedCandidateId)?.name}
+            」に投票しました。変更する場合は再度投票してください。
           </p>
         ) : (
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              候補者一覧
-            </h2>
-            <ul className="space-y-4">
-              {candidates.map((candidate) => (
-                <li
-                  key={candidate.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 border rounded-lg"
-                >
-                  <span className="text-lg font-medium text-gray-700">
-                    {candidate.name} - {candidate.voteCount}票
-                  </span>
-                  <button
-                    onClick={() => voteForCandidate(candidate.id)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300"
-                  >
-                    投票
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className="text-xl font-semibold text-center text-blue-500">
+            投票してください。
+          </p>
         )}
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+            候補者一覧
+          </h2>
+          <ul className="space-y-4">
+            {candidates.map((candidate) => (
+              <li
+                key={candidate.id}
+                className="flex items-center justify-between p-4 bg-gray-50 border rounded-lg"
+              >
+                <span className="text-lg font-medium text-gray-700">
+                  {candidate.name} - {candidate.voteCount}票
+                </span>
+                <button
+                  onClick={() => voteForCandidate(candidate.id)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300"
+                >
+                  {votedCandidateId === candidate.id ? '再投票' : '投票'}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              新しい候補者を追加
+            </h3>
+            <input
+              type="text"
+              value={newCandidateName}
+              onChange={(e) => setNewCandidateName(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md mb-4"
+              placeholder="候補者名を入力"
+            />
+            <button
+              onClick={addNewCandidate}
+              className="w-full bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition duration-300"
+            >
+              候補者を追加
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
