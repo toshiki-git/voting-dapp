@@ -23,6 +23,7 @@ export default function Home() {
   const [votedCandidateId, setVotedCandidateId] = useState<number | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [newCandidateName, setNewCandidateName] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false); // ローディング状態を追加
 
   useEffect(() => {
     const initEthers = async () => {
@@ -51,10 +52,9 @@ export default function Home() {
         }
         setCandidates(tempCandidates);
 
-        // Check if the user has already voted and get the candidateId
         const voterId = await tempContract.voters(tempAccount);
         if (voterId > 0) {
-          setVotedCandidateId(Number(voterId)); // 修正ポイント: 型変換を Number() を使用して行う
+          setVotedCandidateId(Number(voterId));
         }
       } else {
         console.error('MetaMaskがインストールされていません。');
@@ -69,11 +69,14 @@ export default function Home() {
 
     try {
       const tx = await contract.vote(candidateId);
+      setLoading(true); // トランザクション送信後にローディングを有効化
       await tx.wait();
       setVotedCandidateId(candidateId);
       alert('投票に成功しました!');
     } catch (error) {
       console.error('投票に失敗しました:', error);
+    } finally {
+      setLoading(false); // トランザクション処理終了後にローディングを無効化
     }
   };
 
@@ -82,10 +85,10 @@ export default function Home() {
 
     try {
       const tx = await contract.addCandidate(newCandidateName);
+      setLoading(true); // トランザクション送信後にローディングを有効化
       await tx.wait();
       alert(`${newCandidateName} を候補者として追加しました!`);
 
-      // Update candidates list
       const candidatesCount: number = await contract.candidatesCount();
       const newCandidate = await contract.getCandidate(candidatesCount);
       setCandidates([
@@ -97,14 +100,16 @@ export default function Home() {
         },
       ]);
 
-      setNewCandidateName(''); // Reset the input field
+      setNewCandidateName(''); // 入力フィールドをリセット
     } catch (error) {
       console.error('候補者の追加に失敗しました:', error);
+    } finally {
+      setLoading(false); // トランザクション処理終了後にローディングを無効化
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center relative">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
         <h1 className="text-3xl font-bold text-center mb-6 text-blue-600">
           Voting DApp
@@ -116,17 +121,6 @@ export default function Home() {
         ) : (
           <p className="text-sm text-center text-red-600 mb-4">
             MetaMaskを接続してください。
-          </p>
-        )}
-        {votedCandidateId ? (
-          <p className="text-xl font-semibold text-green-500 text-center">
-            あなたは既に「
-            {candidates.find((c) => c.id === votedCandidateId)?.name}
-            」に投票しました。変更する場合は再度投票してください。
-          </p>
-        ) : (
-          <p className="text-xl font-semibold text-center text-blue-500">
-            投票してください。
           </p>
         )}
         <div>
@@ -145,8 +139,9 @@ export default function Home() {
                 <button
                   onClick={() => voteForCandidate(candidate.id)}
                   className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300"
+                  disabled={loading} // ローディング中はボタンを無効化
                 >
-                  {votedCandidateId === candidate.id ? '再投票' : '投票'}
+                  投票
                 </button>
               </li>
             ))}
@@ -161,16 +156,25 @@ export default function Home() {
               onChange={(e) => setNewCandidateName(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md mb-4"
               placeholder="候補者名を入力"
+              disabled={loading} // ローディング中は入力を無効化
             />
             <button
               onClick={addNewCandidate}
               className="w-full bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition duration-300"
+              disabled={loading} // ローディング中はボタンを無効化
             >
               候補者を追加
             </button>
           </div>
         </div>
       </div>
+
+      {loading && (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-white mb-4"></div>
+          <p className="text-white text-lg">トランザクション処理中...</p>
+        </div>
+      )}
     </div>
   );
 }
