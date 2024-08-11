@@ -3,7 +3,12 @@ import VotingABI from './abi.json';
 import { ethers } from 'ethers';
 import { useState, useEffect } from 'react';
 
-const CONTRACT_ADDRESS = '0x1c88555002dc9c0659888e24ec15a568e99d3834';
+// Get the contract address from the environment variables
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as string;
+
+if (CONTRACT_ADDRESS === undefined) {
+  throw new Error('CONTRACT_ADDRESS is not set in the environment variables.');
+}
 
 interface Candidate {
   id: number;
@@ -12,25 +17,30 @@ interface Candidate {
 }
 
 export default function Home() {
-  const [provider, setProvider] = useState<ethers.JsonRpcProvider | null>(null);
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [voted, setVoted] = useState<boolean>(false);
+  const [account, setAccount] = useState<string | null>(null);
 
   useEffect(() => {
     const initEthers = async () => {
-      try {
-        const tempProvider = new ethers.JsonRpcProvider(
-          'http://127.0.0.1:8545'
-        );
-        const signer = await tempProvider.getSigner();
+      if (typeof window.ethereum !== 'undefined') {
+        const tempProvider = new ethers.BrowserProvider(window.ethereum);
+        await tempProvider.send('eth_requestAccounts', []);
+        const tempSigner = await tempProvider.getSigner();
+        const tempAccount = await (await tempSigner).getAddress();
+
         const tempContract = new ethers.Contract(
           CONTRACT_ADDRESS,
           VotingABI,
-          signer
+          tempSigner
         );
 
         setProvider(tempProvider);
+        setSigner(tempSigner);
+        setAccount(tempAccount);
         setContract(tempContract);
 
         const candidatesCount: number = await tempContract.candidatesCount();
@@ -40,8 +50,8 @@ export default function Home() {
           tempCandidates.push({ id: i, name, voteCount: voteCount.toString() });
         }
         setCandidates(tempCandidates);
-      } catch (error) {
-        console.error('Error initializing ethers:', error);
+      } else {
+        console.error('MetaMaskがインストールされていません。');
       }
     };
 
@@ -67,6 +77,15 @@ export default function Home() {
         <h1 className="text-3xl font-bold text-center mb-6 text-blue-600">
           Voting DApp
         </h1>
+        {account ? (
+          <p className="text-sm text-center text-gray-600 mb-4">
+            接続中のアカウント: {account}
+          </p>
+        ) : (
+          <p className="text-sm text-center text-red-600 mb-4">
+            MetaMaskを接続してください。
+          </p>
+        )}
         {voted ? (
           <p className="text-xl font-semibold text-green-500 text-center">
             投票ありがとうございます！
