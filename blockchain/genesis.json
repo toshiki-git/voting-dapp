@@ -15,7 +15,7 @@
     "shanghaiBlock": 0,
     "terminalTotalDifficultyPassed": false,
     "clique": {
-      "period": 1,
+      "period": 3,
       "epoch": 30000
     }
   },
