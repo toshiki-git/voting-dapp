@@ -1,1 +1,0 @@
-geth --datadir . --networkid 15 --http  --http.corsdomain="https://remix.ethereum.org" --http.api "web3,eth,debug,personal,net,miner" --allow-insecure-unlock --unlock 0,1,2,3,4,5 --password "./password.txt" --nodiscover --miner.etherbase "0x2c06ffdb26befc55472267ec4b9b1dd35c046a76" --mine --vmdebug
