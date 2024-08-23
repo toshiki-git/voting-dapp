@@ -16,11 +16,11 @@ interface Candidate {
 }
 
 export default function Home() {
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
+  //const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  //const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [votedCandidateId, setVotedCandidateId] = useState<number | null>(null);
+  //const [votedCandidateId, setVotedCandidateId] = useState<number | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [newCandidateName, setNewCandidateName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false); // ローディング状態を追加
@@ -31,7 +31,7 @@ export default function Home() {
         const tempProvider = new ethers.BrowserProvider(window.ethereum);
         await tempProvider.send('eth_requestAccounts', []);
         const tempSigner = await tempProvider.getSigner();
-        const tempAccount = await (await tempSigner).getAddress();
+        const tempAccount = await tempSigner.getAddress();
 
         const tempContract = new ethers.Contract(
           CONTRACT_ADDRESS,
@@ -39,23 +39,12 @@ export default function Home() {
           tempSigner
         );
 
-        setProvider(tempProvider);
-        setSigner(tempSigner);
+        //setProvider(tempProvider);
+        //setSigner(tempSigner);
         setAccount(tempAccount);
         setContract(tempContract);
 
-        const candidatesCount: number = await tempContract.candidatesCount();
-        const tempCandidates: Candidate[] = [];
-        for (let i = 1; i <= candidatesCount; i++) {
-          const [name, voteCount] = await tempContract.getCandidate(i);
-          tempCandidates.push({ id: i, name, voteCount: voteCount.toString() });
-        }
-        setCandidates(tempCandidates);
-
-        const voterId = await tempContract.voters(tempAccount);
-        if (voterId > 0) {
-          setVotedCandidateId(Number(voterId));
-        }
+        loadCandidates(tempContract);
       } else {
         console.error('MetaMaskがインストールされていません。');
       }
@@ -64,6 +53,26 @@ export default function Home() {
     initEthers();
   }, []);
 
+  const loadCandidates = async (contract: ethers.Contract) => {
+    try {
+      const candidatesCount: number = await contract.candidatesCount();
+      const candidatesArray: Candidate[] = [];
+
+      for (let i = 1; i <= candidatesCount; i++) {
+        const [name, voteCount] = await contract.getCandidate(i);
+        candidatesArray.push({
+          id: i,
+          name,
+          voteCount: voteCount.toString(),
+        });
+      }
+
+      setCandidates(candidatesArray);
+    } catch (error) {
+      console.error('候補者の読み込みに失敗しました:', error);
+    }
+  };
+
   const voteForCandidate = async (candidateId: number) => {
     if (!contract) return;
 
@@ -71,7 +80,7 @@ export default function Home() {
       const tx = await contract.vote(candidateId);
       setLoading(true); // トランザクション送信後にローディングを有効化
       await tx.wait();
-      setVotedCandidateId(candidateId);
+      //setVotedCandidateId(candidateId);
       alert('投票に成功しました!');
     } catch (error) {
       console.error('投票に失敗しました:', error);
