@@ -14,6 +14,7 @@ contract Voting {
 
     event Voted(uint indexed candidateId);
     event CandidateAdded(uint indexed candidateId, string name);
+    event VotingEnded(string winnerName, uint winnerVoteCount);
 
     constructor() {
         addCandidate("Alice");
@@ -41,6 +42,40 @@ contract Voting {
         candidates[candidateId].voteCount++;
 
         emit Voted(candidateId);
+    }
+
+    function endVoting() public returns (string memory winnerName, uint winnerVoteCount) {
+        require(candidatesCount > 0, "No candidates available.");
+
+        // Determine the candidate with the highest vote count
+        uint highestVoteCount = 0;
+        uint winnerId = 0;
+        for (uint i = 1; i <= candidatesCount; i++) {
+            if (candidates[i].voteCount > highestVoteCount) {
+                highestVoteCount = candidates[i].voteCount;
+                winnerId = i;
+            }
+        }
+
+        // Get winner information
+        winnerName = candidates[winnerId].name;
+        winnerVoteCount = candidates[winnerId].voteCount;
+
+        // Emit the VotingEnded event with the winner's information
+        emit VotingEnded(winnerName, winnerVoteCount);
+
+        // Clear the candidates and reset the candidatesCount for a new voting round
+        for (uint i = 1; i <= candidatesCount; i++) {
+            delete candidates[i];
+        }
+        candidatesCount = 0;
+
+        // Clear voter records
+        for (uint i = 0; i < candidatesCount; i++) {
+            voters[msg.sender] = 0;
+        }
+
+        return (winnerName, winnerVoteCount);
     }
 
     function getCandidate(uint candidateId) public view returns (string memory, uint) {

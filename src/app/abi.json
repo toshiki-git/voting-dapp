@@ -37,6 +37,25 @@
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "winnerName",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "winnerVoteCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "VotingEnded",
+    "type": "event"
+  },
+  {
     "inputs": [
       {
         "internalType": "string",
@@ -89,6 +108,24 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "endVoting",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "winnerName",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "winnerVoteCount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

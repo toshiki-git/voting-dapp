@@ -16,14 +16,11 @@ interface Candidate {
 }
 
 export default function Home() {
-  //const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  //const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  //const [votedCandidateId, setVotedCandidateId] = useState<number | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [newCandidateName, setNewCandidateName] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false); // ローディング状態を追加
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const initEthers = async () => {
@@ -39,14 +36,12 @@ export default function Home() {
           tempSigner
         );
 
-        //setProvider(tempProvider);
-        //setSigner(tempSigner);
         setAccount(tempAccount);
         setContract(tempContract);
 
         loadCandidates(tempContract);
       } else {
-        console.error('MetaMaskがインストールされていません。');
+        console.error('MetaMask is not installed.');
       }
     };
 
@@ -69,7 +64,7 @@ export default function Home() {
 
       setCandidates(candidatesArray);
     } catch (error) {
-      console.error('候補者の読み込みに失敗しました:', error);
+      console.error('Failed to load candidates:', error);
     }
   };
 
@@ -78,14 +73,13 @@ export default function Home() {
 
     try {
       const tx = await contract.vote(candidateId);
-      setLoading(true); // トランザクション送信後にローディングを有効化
+      setLoading(true);
       await tx.wait();
-      //setVotedCandidateId(candidateId);
-      alert('投票に成功しました!');
+      alert('Successfully voted!');
     } catch (error) {
-      console.error('投票に失敗しました:', error);
+      console.error('Failed to vote:', error);
     } finally {
-      setLoading(false); // トランザクション処理終了後にローディングを無効化
+      setLoading(false);
     }
   };
 
@@ -94,9 +88,9 @@ export default function Home() {
 
     try {
       const tx = await contract.addCandidate(newCandidateName);
-      setLoading(true); // トランザクション送信後にローディングを有効化
+      setLoading(true);
       await tx.wait();
-      alert(`${newCandidateName} を候補者として追加しました!`);
+      alert(`${newCandidateName} has been added as a candidate!`);
 
       const candidatesCount: number = await contract.candidatesCount();
       const newCandidate = await contract.getCandidate(candidatesCount);
@@ -109,11 +103,11 @@ export default function Home() {
         },
       ]);
 
-      setNewCandidateName(''); // 入力フィールドをリセット
+      setNewCandidateName('');
     } catch (error) {
-      console.error('候補者の追加に失敗しました:', error);
+      console.error('Failed to add candidate:', error);
     } finally {
-      setLoading(false); // トランザクション処理終了後にローディングを無効化
+      setLoading(false);
     }
   };
 
@@ -125,16 +119,16 @@ export default function Home() {
         </h1>
         {account ? (
           <p className="text-sm text-center text-gray-600 mb-4">
-            接続中のアカウント: {account}
+            Connected account: {account}
           </p>
         ) : (
           <p className="text-sm text-center text-red-600 mb-4">
-            MetaMaskを接続してください。
+            Please connect MetaMask.
           </p>
         )}
         <div>
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-            候補者一覧
+            Candidate List
           </h2>
           <ul className="space-y-4">
             {candidates.map((candidate) => (
@@ -143,36 +137,36 @@ export default function Home() {
                 className="flex items-center justify-between p-4 bg-gray-50 border rounded-lg"
               >
                 <span className="text-lg font-medium text-gray-700">
-                  {candidate.name} - {candidate.voteCount}票
+                  {candidate.name} - {candidate.voteCount} votes
                 </span>
                 <button
                   onClick={() => voteForCandidate(candidate.id)}
                   className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300"
-                  disabled={loading} // ローディング中はボタンを無効化
+                  disabled={loading}
                 >
-                  投票
+                  Vote
                 </button>
               </li>
             ))}
           </ul>
           <div className="mt-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              新しい候補者を追加
+              Add New Candidate
             </h3>
             <input
               type="text"
               value={newCandidateName}
               onChange={(e) => setNewCandidateName(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md mb-4"
-              placeholder="候補者名を入力"
-              disabled={loading} // ローディング中は入力を無効化
+              placeholder="Enter candidate name"
+              disabled={loading}
             />
             <button
               onClick={addNewCandidate}
               className="w-full bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition duration-300"
-              disabled={loading} // ローディング中はボタンを無効化
+              disabled={loading}
             >
-              候補者を追加
+              Add Candidate
             </button>
           </div>
         </div>
@@ -181,7 +175,7 @@ export default function Home() {
       {loading && (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-white mb-4"></div>
-          <p className="text-white text-lg">トランザクション処理中...</p>
+          <p className="text-white text-lg">Processing transaction...</p>
         </div>
       )}
     </div>
